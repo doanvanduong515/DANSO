@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Dự đoán dân số - Đoàn Văn Dương</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    .container {
+      display: flex;
+      flex-direction: column;
+      max-width: 800px;
+      margin: auto;
+    }
+    input {
+      margin: 5px;
+    }
+    canvas {
+      margin-top: 30px;
+    }
+    footer {
+      margin-top: 40px;
+      font-size: 0.9em;
+      text-align: center;
+      color: #777;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Mô phỏng dự đoán dân số (Tuyến tính y = ax + b)</h2>
+
+    <table id="dataTable">
+      <thead>
+        <tr>
+          <th>Năm</th>
+          <th>Dân số</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td><input type="number" value="2020"></td><td><input type="number" value="7887001292"></td><td><button onclick="deleteRow(this)">X</button></td></tr>
+        <tr><td><input type="number" value="2021"></td><td><input type="number" value="7954448391"></td><td><button onclick="deleteRow(this)">X</button></td></tr>
+        <tr><td><input type="number" value="2022"></td><td><input type="number" value="8021407192"></td><td><button onclick="deleteRow(this)">X</button></td></tr>
+        <tr><td><input type="number" value="2023"></td><td><input type="number" value="8091734930"></td><td><button onclick="deleteRow(this)">X</button></td></tr>
+        <tr><td><input type="number" value="2024"></td><td><input type="number" value="8161972572"></td><td><button onclick="deleteRow(this)">X</button></td></tr>
+      </tbody>
+    </table>
+    <button onclick="addRow()">Thêm dòng</button>
+
+    <div style="margin-top: 20px;">
+      <label for="targetYear">Dự đoán dân số cho năm:</label>
+      <input id="targetYear" type="number" value="2030">
+      <button onclick="predict()">Dự đoán</button>
+    </div>
+
+    <canvas id="chartCanvas" width="800" height="400"></canvas>
+
+    <footer>
+      Tác giả: <strong>Đoàn Văn Dương</strong> | Dựa theo mô hình tuyến tính đơn giản
+    </footer>
+  </div>
+
+  <script>
+    const chartCtx = document.getElementById('chartCanvas').getContext('2d');
+    let chart;
+
+    function getData() {
+      const rows = document.querySelectorAll('#dataTable tbody tr');
+      const years = [];
+      const pops = [];
+      rows.forEach(row => {
+        const year = parseInt(row.cells[0].querySelector('input').value);
+        const pop = parseInt(row.cells[1].querySelector('input').value);
+        if (!isNaN(year) && !isNaN(pop)) {
+          years.push(year);
+          pops.push(pop);
+        }
+      });
+      return { years, pops };
+    }
+
+    function addRow() {
+      const tbody = document.querySelector('#dataTable tbody');
+      const row = document.createElement('tr');
+      row.innerHTML = '<td><input type="number"></td><td><input type="number"></td><td><button onclick="deleteRow(this)">X</button></td>';
+      tbody.appendChild(row);
+    }
+
+    function deleteRow(btn) {
+      btn.closest('tr').remove();
+    }
+
+    function linearRegression(x, y) {
+      const n = x.length;
+      const sumX = x.reduce((a, b) => a + b, 0);
+      const sumY = y.reduce((a, b) => a + b, 0);
+      const sumXY = x.reduce((sum, xi, i) => sum + xi * y[i], 0);
+      const sumX2 = x.reduce((sum, xi) => sum + xi * xi, 0);
+      const a = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+      const b = (sumY - a * sumX) / n;
+      return { a, b };
+    }
+
+    function predict() {
+      const { years, pops } = getData();
+      const model = linearRegression(years, pops);
+      const targetYear = parseInt(document.getElementById('targetYear').value);
+      const prediction = model.a * targetYear + model.b;
+      alert(`Dự đoán dân số năm ${targetYear} là khoảng: ${Math.round(prediction).toLocaleString()} người.`);
+      drawChart(years, pops, model);
+    }
+
+    function drawChart(years, pops, model) {
+      const allYears = [...years];
+      const predictedPops = years.map(year => model.a * year + model.b);
+
+      if (chart) chart.destroy();
+
+      chart = new Chart(chartCtx, {
+        type: 'line',
+        data: {
+          labels: allYears,
+          datasets: [
+            {
+              label: 'Dân số thực tế',
+              data: pops,
+              borderColor: 'blue',
+              fill: false
+            },
+            {
+              label: 'Đường dự đoán',
+              data: predictedPops,
+              borderColor: 'orange',
+              borderDash: [5, 5],
+              fill: false
+            }
+          ]
+        },
+        options: {
+          scales: {
+            x: { title: { display: true, text: 'Năm' } },
+            y: { title: { display: true, text: 'Dân số' } }
+          }
+        }
+      });
+    }
+
+    window.onload = () => predict();
+  </script>
+</body>
+</html>
